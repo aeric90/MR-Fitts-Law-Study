@@ -4,11 +4,17 @@ using UnityEngine;
 
 public class FittsVRController : MonoBehaviour
 {
+    public static FittsVRController fittsVRinstance;
+
     public int inputTotalTargets = 0;
     public float inputAmplitude = 0.0f;
     public float inputTargetWidth = 1.0f;
 
     public GameObject targetPrefab;
+    public Material targetBasicMaterial;
+    public Material targetActiveMaterial;
+    public Material targetInactiveMaterial;
+
     public GameObject targetContainer;
 
     private int currentTotalTargets = 0;
@@ -17,10 +23,14 @@ public class FittsVRController : MonoBehaviour
 
     private List<GameObject> targets = new List<GameObject>();
 
+    public int targetCount = 0;
+
+    private int currentTargetIndex = 0;
+
     // Start is called before the first frame update
     void Start()
     {
-        
+        fittsVRinstance = this;
     }
 
     // Update is called once per frame
@@ -43,8 +53,6 @@ public class FittsVRController : MonoBehaviour
             float selectDistance = Vector2.Distance(controllerPos2d, targetPos);
 
             Debug.Log(selectDistance + ", " + currentTargetWidth);
-
-
         }
     }
 
@@ -60,11 +68,46 @@ public class FittsVRController : MonoBehaviour
             newTarget.transform.localScale = new Vector3(currentTargetWidth, 0.01f, currentTargetWidth); 
             targets.Add(newTarget);
         }
+
+        SetNextActiveTarget();
     }
 
     private void DeleteTargets()
     {
         foreach(GameObject target in targets) DestroyImmediate(target);
         targets.Clear();
+    }
+
+    private void SetNextActiveTarget()
+    {
+        if (targetCount > 0)
+        {
+            targets[currentTargetIndex].gameObject.GetComponent<Renderer>().material = targetInactiveMaterial;
+            int halfWay = (currentTotalTargets + 1) / 2;
+            currentTargetIndex = (currentTargetIndex + halfWay) % currentTotalTargets;
+        }
+        targets[currentTargetIndex].gameObject.GetComponent<Renderer>().material = targetActiveMaterial;
+    }
+
+    public void TargetSelected(Vector3 selectionVector)
+    {
+        targetCount++;
+
+        // Output:
+        //  ID
+        //  A
+        //  W
+        //  Time
+        //  Selection V3
+        //  Target V3
+
+        if(targetCount >= currentTotalTargets)
+        {
+            // Go to next trail
+        } else
+        {
+            SetNextActiveTarget();
+        }
+
     }
 }
