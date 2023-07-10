@@ -2,9 +2,29 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[System.Serializable]
+public class FittsCondition
+{
+    public int numOfTargets = 0;
+    public float amplitude = 0.0f;
+    public float width = 0.0f;
+
+}
+
 public class FittsVRController : MonoBehaviour
 {
     public static FittsVRController fittsVRinstance;
+
+    public int participantID = 0;
+    public FittsCondition[] trialConditions;
+    public FittsCondition[] practiceConditions;
+
+    public int[,] conditionSquare = {   {0, 1, 3, 4, 5, 2, 0, 1, 3, 4, 5, 2 },
+                                        {1, 4, 0, 2, 3, 5, 1, 4, 0, 2, 3, 5 },
+                                        {4, 2, 1, 5, 0, 3, 4, 2, 1, 5, 0, 3 },
+                                        {2, 5, 4, 3, 1, 0, 2, 5, 4, 3, 1, 0 },
+                                        {5, 3, 2, 0, 4, 1, 5, 3, 2, 0, 4, 1 },
+                                        {3, 0, 5, 1, 2, 4, 3, 0, 5, 1, 2, 4 }};
 
     public int inputTotalTargets = 0;
     public float inputAmplitude = 0.0f;
@@ -17,6 +37,10 @@ public class FittsVRController : MonoBehaviour
 
     public GameObject targetContainer;
 
+    private bool fittsRunning = false;
+    private bool practiceState = false;
+    private int currentTrial = -1;
+    private int numberOfTrialsComplete = 0;
     private int currentTotalTargets = 0;
     private float currentAmplitude = 0.0f;
     private float currentTargetWidth = 1.0f;
@@ -31,19 +55,13 @@ public class FittsVRController : MonoBehaviour
     void Start()
     {
         fittsVRinstance = this;
+        //StartFitts();
     }
 
     // Update is called once per frame
     void Update()
     {
-        if(inputTotalTargets != currentTotalTargets || inputAmplitude != currentAmplitude || inputTargetWidth != currentTargetWidth)
-        {
-            currentTotalTargets = inputTotalTargets;
-            currentAmplitude = inputAmplitude;
-            currentTargetWidth = inputTargetWidth;
-            ResetTargets();
-        }
-
+        /*
         if (OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger))
         {
             Vector3 controllerPos = OVRInput.GetLocalControllerPosition(OVRInput.Controller.RTouch);
@@ -54,6 +72,13 @@ public class FittsVRController : MonoBehaviour
 
             Debug.Log(selectDistance + ", " + currentTargetWidth);
         }
+        */
+    }
+
+    public void StartFitts()
+    {
+        fittsRunning = true;
+        NextTrial();
     }
 
     private void ResetTargets()
@@ -80,34 +105,81 @@ public class FittsVRController : MonoBehaviour
 
     private void SetNextActiveTarget()
     {
-        if (targetCount > 0)
-        {
-            targets[currentTargetIndex].gameObject.GetComponent<Renderer>().material = targetInactiveMaterial;
-            int halfWay = (currentTotalTargets + 1) / 2;
-            currentTargetIndex = (currentTargetIndex + halfWay) % currentTotalTargets;
+        if (targetCount > 0) {
+            if (targetCount == 1)
+            {
+                targets[currentTargetIndex].gameObject.GetComponent<Renderer>().material = targetBasicMaterial;
+            }
+            else
+            {
+                targets[currentTargetIndex].gameObject.GetComponent<Renderer>().material = targetInactiveMaterial;
+            }
+
+            if (targetCount < currentTotalTargets)
+            {
+                int halfWay = (currentTotalTargets + 1) / 2;
+                currentTargetIndex = (currentTargetIndex + halfWay) % currentTotalTargets;
+            } else
+            {
+                currentTargetIndex = 0;
+            }
         }
+
         targets[currentTargetIndex].gameObject.GetComponent<Renderer>().material = targetActiveMaterial;
     }
 
     public void TargetSelected(Vector3 selectionVector)
     {
-        targetCount++;
-
-        // Output:
-        //  ID
-        //  A
-        //  W
-        //  Time
-        //  Selection V3
-        //  Target V3
-
-        if(targetCount >= currentTotalTargets)
+        if (fittsRunning)
         {
-            // Go to next trail
-        } else
-        {
-            SetNextActiveTarget();
+            targetCount++;
+
+            // Output:
+            //  ID
+            //  A
+            //  W
+            //  Time
+            //  Selection V3
+            //  Target V3
+
+            if (targetCount > currentTotalTargets)
+            {
+                numberOfTrialsComplete++;
+                if (numberOfTrialsComplete < 12)
+                {
+                    NextTrial();
+                } else
+                {
+                    fittsRunning = false;
+                    DeleteTargets();
+                }
+            }
+            else
+            {
+                SetNextActiveTarget();
+            }
+        }
+    }
+
+    private void NextTrial()
+    {
+        FittsCondition newCondition = new FittsCondition();
+
+        if(practiceState) {
+            currentTrial++;
+            if (currentTrial >= practiceConditions.Length) currentTrial = 0;
+            newCondition = practiceConditions[currentTrial];
+        } else {
+            currentTrial = conditionSquare[participantID % 6, numberOfTrialsComplete];
+            Debug.Log(currentTrial);
+            newCondition = trialConditions[currentTrial];
         }
 
+        targetCount = 0;
+        currentTotalTargets = newCondition.numOfTargets;
+        currentAmplitude = newCondition.amplitude;
+        currentTargetWidth = newCondition.width;
+
+        ResetTargets();
     }
 }
