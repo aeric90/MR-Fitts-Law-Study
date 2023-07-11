@@ -39,6 +39,7 @@ public class FittsVRController : MonoBehaviour
 
     private bool fittsRunning = false;
     private bool practiceState = false;
+    private bool practiceComplete = false;
     private int currentTrial = -1;
     private int numberOfTrialsComplete = 0;
     private int currentTotalTargets = 0;
@@ -167,7 +168,11 @@ public class FittsVRController : MonoBehaviour
 
         if(practiceState) {
             currentTrial++;
-            if (currentTrial >= practiceConditions.Length) currentTrial = 0;
+            if (currentTrial >= practiceConditions.Length)
+            {
+                practiceComplete = true;
+                currentTrial = 0;
+            }
             newCondition = practiceConditions[currentTrial];
         } else {
             currentTrial = conditionSquare[participantID % 6, numberOfTrialsComplete];
@@ -181,5 +186,19 @@ public class FittsVRController : MonoBehaviour
         currentTargetWidth = newCondition.width;
 
         ResetTargets();
+    }
+    public void SetPractice(bool status)
+    {
+        practiceState = status;
+    }
+
+    public void SetPID(int PID)
+    {
+        participantID = PID;
+    }
+
+    public bool GetPracticeComplete()
+    {
+        return practiceComplete;
     }
 }

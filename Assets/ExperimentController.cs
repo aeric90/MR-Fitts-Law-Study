@@ -23,8 +23,10 @@ public class ExperimentController : MonoBehaviour
 
     private int conditionID = 0;
     private int trialNumber = 0;
+    private string hand = "";
 
     public GameObject PIDUI;
+    public GameObject HandUI;
     public GameObject room;
     public GameObject avatar;
     public GameObject fittsController;
@@ -86,9 +88,10 @@ public class ExperimentController : MonoBehaviour
             case PROGRAM_STATUS.START:
                 break;
             case PROGRAM_STATUS.PRACTICE:
-
+                if(FittsVRController.fittsVRinstance.GetPracticeComplete()) nextUI.SetActive(true);
                 break;
             case PROGRAM_STATUS.TRIAL:
+                if (FittsVRController.fittsVRinstance.GetPracticeComplete()) nextUI.SetActive(true);
                 break;
             case PROGRAM_STATUS.POST_TRIAL:
                 break;
@@ -133,12 +136,12 @@ public class ExperimentController : MonoBehaviour
 
     public void UIStart(string PID)
     {
-        if (PID != "")
+        hand = HandUIController.instance.hand;
+
+        if (PID != "" && hand != "")
         {
             participantID = int.Parse(PID);
             NewStatus(PROGRAM_STATUS.PRACTICE);
-            SetCondition();
-            FittsVRController.fittsVRinstance.StartFitts();
         }
     }
 
@@ -157,7 +160,14 @@ public class ExperimentController : MonoBehaviour
 
     public void NextButton()
     {
-        Debug.Log("Next");
+        switch (currentStatus)
+        {
+            case PROGRAM_STATUS.PRACTICE:
+                NewStatus(PROGRAM_STATUS.TRIAL);
+                break;
+            case PROGRAM_STATUS.TRIAL:
+                break;
+        }
     }
 
     private void NewStatus(PROGRAM_STATUS newStatus)
@@ -170,14 +180,18 @@ public class ExperimentController : MonoBehaviour
                 break;
             case PROGRAM_STATUS.PRACTICE:
                 PIDUI.SetActive(false);
-                fittsController.SetActive(true);
+                HandUI.SetActive(false);
+                FittsVRController.fittsVRinstance.SetPractice(true);
+                FittsVRController.fittsVRinstance.SetPID(participantID);
+                FittsVRController.fittsVRinstance.StartFitts();
                 currentStatus = PROGRAM_STATUS.PRACTICE;
                 break;
             case PROGRAM_STATUS.TRIAL:
-                break;
-            case PROGRAM_STATUS.POST_TRIAL:
-                break;
-            case PROGRAM_STATUS.END:
+                nextUI.SetActive(false);
+                FittsVRController.fittsVRinstance.SetPractice(false);
+                FittsVRController.fittsVRinstance.StartFitts();
+                currentStatus = PROGRAM_STATUS.TRIAL;
+                SetCondition();
                 break;
         }
     }
