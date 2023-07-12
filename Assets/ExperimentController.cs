@@ -91,7 +91,8 @@ public class ExperimentController : MonoBehaviour
                 if(FittsVRController.fittsVRinstance.GetPracticeComplete()) nextUI.SetActive(true);
                 break;
             case PROGRAM_STATUS.TRIAL:
-                if (FittsVRController.fittsVRinstance.GetPracticeComplete()) nextUI.SetActive(true);
+                if (FittsVRController.fittsVRinstance.GetTrialComplete()) nextUI.SetActive(true);
+                NewStatus(PROGRAM_STATUS.POST_TRIAL);
                 break;
             case PROGRAM_STATUS.POST_TRIAL:
                 break;
@@ -152,10 +153,6 @@ public class ExperimentController : MonoBehaviour
         {
             currentStatus = PROGRAM_STATUS.END;
         }
-        else
-        {
-            SetCondition();
-        }
     }
 
     public void NextButton()
@@ -163,9 +160,12 @@ public class ExperimentController : MonoBehaviour
         switch (currentStatus)
         {
             case PROGRAM_STATUS.PRACTICE:
+                FittsVRController.fittsVRinstance.SetPractice(false);
                 NewStatus(PROGRAM_STATUS.TRIAL);
                 break;
-            case PROGRAM_STATUS.TRIAL:
+            case PROGRAM_STATUS.POST_TRIAL:
+                NextCondition();
+                NewStatus(PROGRAM_STATUS.TRIAL);
                 break;
         }
     }
@@ -188,10 +188,12 @@ public class ExperimentController : MonoBehaviour
                 break;
             case PROGRAM_STATUS.TRIAL:
                 nextUI.SetActive(false);
-                FittsVRController.fittsVRinstance.SetPractice(false);
                 FittsVRController.fittsVRinstance.StartFitts();
                 currentStatus = PROGRAM_STATUS.TRIAL;
                 SetCondition();
+                break;
+            case PROGRAM_STATUS.POST_TRIAL:
+                currentStatus = PROGRAM_STATUS.POST_TRIAL;
                 break;
         }
     }
