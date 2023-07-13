@@ -80,6 +80,7 @@ public class FittsVRController : MonoBehaviour
     public void StartFitts()
     {
         fittsRunning = true;
+        numberOfTrialsComplete = 0;
         NextTrial();
     }
 
@@ -95,7 +96,7 @@ public class FittsVRController : MonoBehaviour
             newTarget.transform.localScale = new Vector3(currentTargetWidth, 0.01f, currentTargetWidth); 
             targets.Add(newTarget);
         }
-
+        targetCount = 0;
         SetNextActiveTarget();
     }
 

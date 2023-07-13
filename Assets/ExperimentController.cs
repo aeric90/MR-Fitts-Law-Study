@@ -49,23 +49,11 @@ public class ExperimentController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        /*
+         
         if(Input.GetKeyDown(KeyCode.Space))
         {
             FittsVRController.fittsVRinstance.TargetSelected(Vector3.one);
-        }
-
-        if (currentStatus == PROGRAM_STATUS.PRACTICE || currentStatus == PROGRAM_STATUS.TRIAL)
-        {
-            if ((OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger) || OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger)) && !triggerDown)
-            {
-                FittsVRController.fittsVRinstance.TargetSelected(Vector3.one);
-                triggerDown = true;
-            }
-
-            if ((OVRInput.GetUp(OVRInput.Button.PrimaryIndexTrigger) || OVRInput.GetUp(OVRInput.Button.SecondaryIndexTrigger)) && triggerDown)
-            {
-                triggerDown = false;
-            }
         }
 
         if (OVRInput.GetDown(OVRInput.Button.PrimaryHandTrigger) && !buttonDown)
@@ -81,23 +69,45 @@ public class ExperimentController : MonoBehaviour
             buttonDown = false;
         }
 
-        switch(currentStatus)
+        */
+
+        switch (currentStatus)
         {
             case PROGRAM_STATUS.TEST:
                 break;
             case PROGRAM_STATUS.START:
                 break;
             case PROGRAM_STATUS.PRACTICE:
-                if(FittsVRController.fittsVRinstance.GetPracticeComplete()) nextUI.SetActive(true);
+                CheckClick();
+                if (FittsVRController.fittsVRinstance.GetPracticeComplete()) nextUI.SetActive(true);
                 break;
             case PROGRAM_STATUS.TRIAL:
-                if (FittsVRController.fittsVRinstance.GetTrialComplete()) nextUI.SetActive(true);
-                NewStatus(PROGRAM_STATUS.POST_TRIAL);
+                CheckClick();
+                if (FittsVRController.fittsVRinstance.GetTrialComplete())
+                {
+                    nextUI.SetActive(true);
+                    NewStatus(PROGRAM_STATUS.POST_TRIAL);
+                }
                 break;
             case PROGRAM_STATUS.POST_TRIAL:
                 break;
             case PROGRAM_STATUS.END:
                 break;
+        }
+    }
+
+    private void CheckClick()
+    {
+        if ((OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger) || OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger)) && !triggerDown)
+        {
+            Debug.Log("Click");
+            FittsVRController.fittsVRinstance.TargetSelected(Vector3.one);
+            triggerDown = true;
+        }
+
+        if ((OVRInput.GetUp(OVRInput.Button.PrimaryIndexTrigger) || OVRInput.GetUp(OVRInput.Button.SecondaryIndexTrigger)) && triggerDown)
+        {
+            triggerDown = false;
         }
     }
 
@@ -188,9 +198,9 @@ public class ExperimentController : MonoBehaviour
                 break;
             case PROGRAM_STATUS.TRIAL:
                 nextUI.SetActive(false);
+                SetCondition();
                 FittsVRController.fittsVRinstance.StartFitts();
                 currentStatus = PROGRAM_STATUS.TRIAL;
-                SetCondition();
                 break;
             case PROGRAM_STATUS.POST_TRIAL:
                 currentStatus = PROGRAM_STATUS.POST_TRIAL;
