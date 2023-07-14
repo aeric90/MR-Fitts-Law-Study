@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.IO;
+using System;
 
 [System.Serializable]
 public class FittsCondition
@@ -53,28 +55,18 @@ public class FittsVRController : MonoBehaviour
 
     private int currentTargetIndex = 0;
 
+    private StreamWriter output;
+
     // Start is called before the first frame update
     void Start()
     {
         fittsVRinstance = this;
-        //StartFitts();
     }
 
     // Update is called once per frame
     void Update()
     {
-        /*
-        if (OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger))
-        {
-            Vector3 controllerPos = OVRInput.GetLocalControllerPosition(OVRInput.Controller.RTouch);
-            Vector2 controllerPos2d = new Vector2(controllerPos.x, controllerPos.y);
-            Vector2 targetPos = new Vector2(targets[0].transform.position.x, targets[0].transform.position.y);
 
-            float selectDistance = Vector2.Distance(controllerPos2d, targetPos);
-
-            Debug.Log(selectDistance + ", " + currentTargetWidth);
-        }
-        */
     }
 
     public void StartFitts()
@@ -131,19 +123,39 @@ public class FittsVRController : MonoBehaviour
         targets[currentTargetIndex].gameObject.GetComponent<Renderer>().material = targetActiveMaterial;
     }
 
+    public void StartTrials()
+    {
+        output = new StreamWriter(Application.persistentDataPath + "/FittsVR-" + DateTime.Now.ToString("ddMMyy-MMss-") + participantID + ".csv");
+        output.WriteLine("PID", "#", "A", "W", "T", "sX", "sY", "sZ", "tX", "tY", "tZ");
+    }
+
+    public void EndTrials()
+    {
+        output.Close();
+    }
+
     public void TargetSelected(Vector3 selectionVector)
     {
         if (fittsRunning)
         {
             targetCount++;
 
-            // Output:
-            //  ID
-            //  A
-            //  W
-            //  Time
-            //  Selection V3
-            //  Target V3
+            if (!practiceState)
+            {
+                // Output:
+                Debug.Log(participantID);
+                Debug.Log(currentAmplitude);
+                Debug.Log(currentTargetWidth);
+                Debug.Log(targetCount);
+                Debug.Log(Time.time);
+                Debug.Log(selectionVector.x);
+                Debug.Log(selectionVector.y);
+                Debug.Log(selectionVector.z);
+                Debug.Log(targets[currentTargetIndex].transform.position.x);
+                Debug.Log(targets[currentTargetIndex].transform.position.y);
+                Debug.Log(targets[currentTargetIndex].transform.position.z);
+
+            }
 
             if (targetCount > currentTotalTargets)
             {
@@ -183,6 +195,7 @@ public class FittsVRController : MonoBehaviour
         }
 
         targetCount = 0;
+        trialComplete = false;
         currentTotalTargets = newCondition.numOfTargets;
         currentAmplitude = newCondition.amplitude;
         currentTargetWidth = newCondition.width;

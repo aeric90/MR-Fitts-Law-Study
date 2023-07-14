@@ -16,10 +16,9 @@ public class ExperimentController : MonoBehaviour
 {
     public static ExperimentController instance;
 
-    private PROGRAM_STATUS currentStatus = PROGRAM_STATUS.TEST;
+    public PROGRAM_STATUS currentStatus = PROGRAM_STATUS.TEST;
 
     private bool triggerDown = false;
-    private bool buttonDown = false;
 
     private int conditionID = 0;
     private int trialNumber = 0;
@@ -30,7 +29,6 @@ public class ExperimentController : MonoBehaviour
     public GameObject room;
     public GameObject avatar;
     public GameObject fittsController;
-    public GameObject nextUI;
 
     public int[,] conditionSquare = {{0, 1, 3, 2 },
                                      {1, 2, 0, 3 },
@@ -43,34 +41,11 @@ public class ExperimentController : MonoBehaviour
     void Start()
     {
         instance = this;
-        //SetCondition();
     }
 
     // Update is called once per frame
     void Update()
     {
-        /*
-         
-        if(Input.GetKeyDown(KeyCode.Space))
-        {
-            FittsVRController.fittsVRinstance.TargetSelected(Vector3.one);
-        }
-
-        if (OVRInput.GetDown(OVRInput.Button.PrimaryHandTrigger) && !buttonDown)
-        {
-            conditionID++;
-            if (conditionID > 3) conditionID = 0;
-            SetCondition();
-            buttonDown = true;
-        }
-
-        if (OVRInput.GetUp(OVRInput.Button.PrimaryHandTrigger) && buttonDown)
-        {
-            buttonDown = false;
-        }
-
-        */
-
         switch (currentStatus)
         {
             case PROGRAM_STATUS.TEST:
@@ -79,15 +54,11 @@ public class ExperimentController : MonoBehaviour
                 break;
             case PROGRAM_STATUS.PRACTICE:
                 CheckClick();
-                if (FittsVRController.fittsVRinstance.GetPracticeComplete()) nextUI.SetActive(true);
+                if (FittsVRController.fittsVRinstance.GetPracticeComplete()) buttonController.instance.SetActive(true);
                 break;
             case PROGRAM_STATUS.TRIAL:
                 CheckClick();
-                if (FittsVRController.fittsVRinstance.GetTrialComplete())
-                {
-                    nextUI.SetActive(true);
-                    NewStatus(PROGRAM_STATUS.POST_TRIAL);
-                }
+                if (FittsVRController.fittsVRinstance.GetTrialComplete()) NewStatus(PROGRAM_STATUS.POST_TRIAL);
                 break;
             case PROGRAM_STATUS.POST_TRIAL:
                 break;
@@ -98,23 +69,16 @@ public class ExperimentController : MonoBehaviour
 
     private void CheckClick()
     {
-        if ((OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger) || OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger)) && !triggerDown)
+        if ((Input.GetKeyDown(KeyCode.Space) || OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger) || OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger)) && !triggerDown)
         {
-            Debug.Log("Click");
             FittsVRController.fittsVRinstance.TargetSelected(Vector3.one);
             triggerDown = true;
         }
 
-        if ((OVRInput.GetUp(OVRInput.Button.PrimaryIndexTrigger) || OVRInput.GetUp(OVRInput.Button.SecondaryIndexTrigger)) && triggerDown)
+        if ((Input.GetKeyUp(KeyCode.Space) || OVRInput.GetUp(OVRInput.Button.PrimaryIndexTrigger) || OVRInput.GetUp(OVRInput.Button.SecondaryIndexTrigger)) && triggerDown)
         {
             triggerDown = false;
         }
-    }
-
-    private void GetNextCondition()
-    {
-
-
     }
 
     private void SetCondition()
@@ -161,7 +125,7 @@ public class ExperimentController : MonoBehaviour
         trialNumber++;
         if (trialNumber <= 4)
         {
-            currentStatus = PROGRAM_STATUS.END;
+            NewStatus(PROGRAM_STATUS.END);
         }
     }
 
@@ -171,6 +135,7 @@ public class ExperimentController : MonoBehaviour
         {
             case PROGRAM_STATUS.PRACTICE:
                 FittsVRController.fittsVRinstance.SetPractice(false);
+                FittsVRController.fittsVRinstance.StartTrials();
                 NewStatus(PROGRAM_STATUS.TRIAL);
                 break;
             case PROGRAM_STATUS.POST_TRIAL:
@@ -197,13 +162,18 @@ public class ExperimentController : MonoBehaviour
                 currentStatus = PROGRAM_STATUS.PRACTICE;
                 break;
             case PROGRAM_STATUS.TRIAL:
-                nextUI.SetActive(false);
                 SetCondition();
                 FittsVRController.fittsVRinstance.StartFitts();
                 currentStatus = PROGRAM_STATUS.TRIAL;
+                buttonController.instance.SetActive(false);
                 break;
             case PROGRAM_STATUS.POST_TRIAL:
+                buttonController.instance.SetActive(true);
                 currentStatus = PROGRAM_STATUS.POST_TRIAL;
+                break;
+            case PROGRAM_STATUS.END:
+                FittsVRController.fittsVRinstance.EndTrials();
+                buttonController.instance.SetEnd();
                 break;
         }
     }
