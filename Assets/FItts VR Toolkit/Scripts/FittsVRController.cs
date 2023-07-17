@@ -126,11 +126,12 @@ public class FittsVRController : MonoBehaviour
     public void StartTrials()
     {
         output = new StreamWriter(Application.persistentDataPath + "/FittsVR-" + DateTime.Now.ToString("ddMMyy-MMss-") + participantID + ".csv");
-        output.WriteLine("PID", "#", "A", "W", "T", "sX", "sY", "sZ", "tX", "tY", "tZ");
+        output.WriteLine("PID,#,A,W,T,sX,sY,sZ,tX,tY,tZ");
     }
 
     public void EndTrials()
     {
+        Debug.Log("Closing File");
         output.Close();
     }
 
@@ -138,23 +139,26 @@ public class FittsVRController : MonoBehaviour
     {
         if (fittsRunning)
         {
+            GetComponent<AudioSource>().Play();
+
             targetCount++;
 
             if (!practiceState)
             {
-                // Output:
-                Debug.Log(participantID);
-                Debug.Log(currentAmplitude);
-                Debug.Log(currentTargetWidth);
-                Debug.Log(targetCount);
-                Debug.Log(Time.time);
-                Debug.Log(selectionVector.x);
-                Debug.Log(selectionVector.y);
-                Debug.Log(selectionVector.z);
-                Debug.Log(targets[currentTargetIndex].transform.position.x);
-                Debug.Log(targets[currentTargetIndex].transform.position.y);
-                Debug.Log(targets[currentTargetIndex].transform.position.z);
+                string outputLine = "";
 
+                outputLine += participantID + ",";
+                outputLine += targetCount + ",";
+                outputLine += currentAmplitude + ",";
+                outputLine += currentTargetWidth + ",";
+                outputLine += Time.time + ",";
+                outputLine += selectionVector.x + ",";
+                outputLine += selectionVector.y + ",";
+                outputLine += selectionVector.z + ",";
+                outputLine += targets[currentTargetIndex].transform.position.x + ",";
+                outputLine += targets[currentTargetIndex].transform.position.y + ",";
+                outputLine += targets[currentTargetIndex].transform.position.z;
+                output.WriteLine(outputLine);
             }
 
             if (targetCount > currentTotalTargets)

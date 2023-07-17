@@ -30,6 +30,9 @@ public class ExperimentController : MonoBehaviour
     public GameObject avatar;
     public GameObject fittsController;
 
+    public GameObject leftPokeInteractor;
+    public GameObject rightPokeInteractor;
+
     public int[,] conditionSquare = {{0, 1, 3, 2 },
                                      {1, 2, 0, 3 },
                                      {2, 3, 1, 0 },
@@ -71,7 +74,13 @@ public class ExperimentController : MonoBehaviour
     {
         if ((Input.GetKeyDown(KeyCode.Space) || OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger) || OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger)) && !triggerDown)
         {
-            FittsVRController.fittsVRinstance.TargetSelected(Vector3.one);
+            if (hand == "left")
+            {
+                FittsVRController.fittsVRinstance.TargetSelected(leftPokeInteractor.transform.position);
+            } else if (hand == "right")
+            {
+                FittsVRController.fittsVRinstance.TargetSelected(rightPokeInteractor.transform.position);
+            }
             triggerDown = true;
         }
 
@@ -123,10 +132,7 @@ public class ExperimentController : MonoBehaviour
     public void NextCondition()
     {
         trialNumber++;
-        if (trialNumber <= 4)
-        {
-            NewStatus(PROGRAM_STATUS.END);
-        }
+        if (trialNumber >= 4) NewStatus(PROGRAM_STATUS.END);
     }
 
     public void NextButton()
@@ -159,11 +165,22 @@ public class ExperimentController : MonoBehaviour
                 FittsVRController.fittsVRinstance.SetPractice(true);
                 FittsVRController.fittsVRinstance.SetPID(participantID);
                 FittsVRController.fittsVRinstance.StartFitts();
+
+                FittsVRControllerTracker.fittsVRControllerTracker.SetPID(participantID);
+                if (hand == "left")
+                {
+                    FittsVRControllerTracker.fittsVRControllerTracker.SetTrackedObject(leftPokeInteractor);
+                } else
+                {
+                    FittsVRControllerTracker.fittsVRControllerTracker.SetTrackedObject(rightPokeInteractor);
+                }
+
                 currentStatus = PROGRAM_STATUS.PRACTICE;
                 break;
             case PROGRAM_STATUS.TRIAL:
                 SetCondition();
                 FittsVRController.fittsVRinstance.StartFitts();
+                FittsVRControllerTracker.fittsVRControllerTracker.SetTrackerOn(true);
                 currentStatus = PROGRAM_STATUS.TRIAL;
                 buttonController.instance.SetActive(false);
                 break;
@@ -173,16 +190,10 @@ public class ExperimentController : MonoBehaviour
                 break;
             case PROGRAM_STATUS.END:
                 FittsVRController.fittsVRinstance.EndTrials();
+                FittsVRControllerTracker.fittsVRControllerTracker.SetTrackerOn(false);
                 buttonController.instance.SetEnd();
+                currentStatus = PROGRAM_STATUS.END;
                 break;
-        }
-    }
-
-    private void CheckTrialStatus(int targetCount)
-    {
-        if(targetCount == FittsVRController.fittsVRinstance.targetCount)
-        {
-
         }
     }
 }
