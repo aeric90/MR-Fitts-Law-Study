@@ -33,6 +33,8 @@ public class ExperimentController : MonoBehaviour
     public GameObject leftPokeInteractor;
     public GameObject rightPokeInteractor;
 
+    public List<GameObject> rayInteractors = new List<GameObject>();
+
     public int[,] conditionSquare = {{0, 1, 3, 2 },
                                      {1, 2, 0, 3 },
                                      {2, 3, 1, 0 },
@@ -68,6 +70,11 @@ public class ExperimentController : MonoBehaviour
             case PROGRAM_STATUS.END:
                 break;
         }
+
+        if ((OVRInput.GetUp(OVRInput.Button.PrimaryIndexTrigger) || OVRInput.GetUp(OVRInput.Button.SecondaryIndexTrigger)) && triggerDown)
+        {
+            triggerDown = false;
+        }
     }
 
     private void CheckClick()
@@ -82,11 +89,6 @@ public class ExperimentController : MonoBehaviour
                 FittsVRController.fittsVRinstance.TargetSelected(rightPokeInteractor.transform.position);
             }
             triggerDown = true;
-        }
-
-        if ((Input.GetKeyUp(KeyCode.Space) || OVRInput.GetUp(OVRInput.Button.PrimaryIndexTrigger) || OVRInput.GetUp(OVRInput.Button.SecondaryIndexTrigger)) && triggerDown)
-        {
-            triggerDown = false;
         }
     }
 
@@ -125,6 +127,7 @@ public class ExperimentController : MonoBehaviour
         if (PID != "" && hand != "")
         {
             participantID = int.Parse(PID);
+            foreach(GameObject ray in rayInteractors) ray.SetActive(false);
             NewStatus(PROGRAM_STATUS.PRACTICE);
         }
     }
@@ -142,6 +145,7 @@ public class ExperimentController : MonoBehaviour
             case PROGRAM_STATUS.PRACTICE:
                 FittsVRController.fittsVRinstance.SetPractice(false);
                 FittsVRController.fittsVRinstance.StartTrials();
+                FittsVRControllerTracker.fittsVRControllerTracker.SetTrackerOn(true);
                 NewStatus(PROGRAM_STATUS.TRIAL);
                 break;
             case PROGRAM_STATUS.POST_TRIAL:
@@ -164,7 +168,7 @@ public class ExperimentController : MonoBehaviour
                 HandUI.SetActive(false);
                 FittsVRController.fittsVRinstance.SetPractice(true);
                 FittsVRController.fittsVRinstance.SetPID(participantID);
-                FittsVRController.fittsVRinstance.StartFitts();
+                FittsVRController.fittsVRinstance.StartFitts(-1);
 
                 FittsVRControllerTracker.fittsVRControllerTracker.SetPID(participantID);
                 if (hand == "left")
@@ -179,8 +183,8 @@ public class ExperimentController : MonoBehaviour
                 break;
             case PROGRAM_STATUS.TRIAL:
                 SetCondition();
-                FittsVRController.fittsVRinstance.StartFitts();
-                FittsVRControllerTracker.fittsVRControllerTracker.SetTrackerOn(true);
+                FittsVRController.fittsVRinstance.StartFitts(conditionID);
+                FittsVRControllerTracker.fittsVRControllerTracker.SetExpTrial(conditionID);
                 currentStatus = PROGRAM_STATUS.TRIAL;
                 buttonController.instance.SetActive(false);
                 break;

@@ -43,11 +43,13 @@ public class FittsVRController : MonoBehaviour
     private bool practiceState = false;
     private bool practiceComplete = false;
     private bool trialComplete = false;
+    private int expTrailID = 0;
     private int currentTrial = -1;
     private int numberOfTrialsComplete = 0;
     private int currentTotalTargets = 0;
     private float currentAmplitude = 0.0f;
     private float currentTargetWidth = 1.0f;
+    private float lastTargetTime = 0.0f;
 
     private List<GameObject> targets = new List<GameObject>();
 
@@ -69,8 +71,9 @@ public class FittsVRController : MonoBehaviour
 
     }
 
-    public void StartFitts()
+    public void StartFitts(int trialID)
     {
+        expTrailID = trialID;
         fittsRunning = true;
         numberOfTrialsComplete = 0;
         NextTrial();
@@ -125,8 +128,8 @@ public class FittsVRController : MonoBehaviour
 
     public void StartTrials()
     {
-        output = new StreamWriter(Application.persistentDataPath + "/FittsVR-" + DateTime.Now.ToString("ddMMyy-MMss-") + participantID + ".csv");
-        output.WriteLine("PID,#,A,W,T,sX,sY,sZ,tX,tY,tZ");
+        output = new StreamWriter(Application.persistentDataPath + "/FittsVR-Results-" + DateTime.Now.ToString("ddMMyy-MMss-") + participantID + ".csv");
+        output.WriteLine("TID,PID,#,A,W,ID,T,sX,sY,sZ,tX,tY,tZ,dX,dY,dZ,dP");
     }
 
     public void EndTrials()
@@ -141,25 +144,38 @@ public class FittsVRController : MonoBehaviour
         {
             GetComponent<AudioSource>().Play();
 
-            targetCount++;
-
-            if (!practiceState)
+            if (!practiceState && targetCount > 0)
             {
                 string outputLine = "";
 
+                outputLine += expTrailID + ",";
                 outputLine += participantID + ",";
                 outputLine += targetCount + ",";
                 outputLine += currentAmplitude + ",";
                 outputLine += currentTargetWidth + ",";
-                outputLine += Time.time + ",";
+                outputLine += Math.Log((currentAmplitude / currentTargetWidth) + 1, 2) + ",";
+                outputLine += Time.time - lastTargetTime + ",";
                 outputLine += selectionVector.x + ",";
                 outputLine += selectionVector.y + ",";
                 outputLine += selectionVector.z + ",";
                 outputLine += targets[currentTargetIndex].transform.position.x + ",";
                 outputLine += targets[currentTargetIndex].transform.position.y + ",";
-                outputLine += targets[currentTargetIndex].transform.position.z;
+                outputLine += targets[currentTargetIndex].transform.position.z + ",";
+
+                float xDelta = Math.Abs(targets[currentTargetIndex].transform.position.x - selectionVector.x);
+                float yDelta = Math.Abs(targets[currentTargetIndex].transform.position.y - selectionVector.y);
+                float zDelta = Math.Abs(targets[currentTargetIndex].transform.position.z - selectionVector.z);
+
+                outputLine += xDelta + ",";
+                outputLine += yDelta + ",";
+                outputLine += zDelta + ",";
+                outputLine += Math.Sqrt(Math.Pow(xDelta, 2) + Math.Pow(yDelta, 2));
+
                 output.WriteLine(outputLine);
             }
+
+            lastTargetTime = Time.time;
+            targetCount++;
 
             if (targetCount > currentTotalTargets)
             {

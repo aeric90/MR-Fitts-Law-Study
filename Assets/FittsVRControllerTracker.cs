@@ -12,6 +12,7 @@ public class FittsVRControllerTracker : MonoBehaviour
     private float lastCheck;
 
     private int participantID = -1;
+    private int expTrailID = -1;
     private GameObject trackedObject = null;
     private bool trackerOn = false;
 
@@ -34,6 +35,11 @@ public class FittsVRControllerTracker : MonoBehaviour
         this.trackedObject = trackedObject;
     }
 
+    public void SetExpTrial(int trialID)
+    {
+        expTrailID = trialID;  
+    }
+
     public void SetTrackerOn(bool status)
     {
         trackerOn = status;
@@ -41,6 +47,7 @@ public class FittsVRControllerTracker : MonoBehaviour
         if (status)
         {
             output = new StreamWriter(Application.persistentDataPath + "/FittsVR-Tracking-" + DateTime.Now.ToString("ddMMyy-MMss-") + participantID + ".csv");
+            output.WriteLine("T,TID,PID,X,Y,Z");
         }
         else if (!status)
         {
@@ -57,6 +64,8 @@ public class FittsVRControllerTracker : MonoBehaviour
             {
                 string outputString = "";
                 outputString += Time.time + ",";
+                outputString += expTrailID + ",";
+                outputString += participantID + ",";
                 outputString += trackedObject.transform.position.x + ",";
                 outputString += trackedObject.transform.position.y + ",";
                 outputString += trackedObject.transform.position.z;
