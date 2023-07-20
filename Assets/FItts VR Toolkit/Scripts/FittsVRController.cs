@@ -57,7 +57,11 @@ public class FittsVRController : MonoBehaviour
 
     private int currentTargetIndex = 0;
 
-    private StreamWriter output;
+    private StreamWriter detailOutput;
+    private StreamWriter summaryOutput;
+
+    private List<float> tList = new List<float>();
+    private List<float> dXlist = new List<float>();
 
     // Start is called before the first frame update
     void Start()
@@ -128,14 +132,17 @@ public class FittsVRController : MonoBehaviour
 
     public void StartTrials()
     {
-        output = new StreamWriter(Application.persistentDataPath + "/FittsVR-Results-" + DateTime.Now.ToString("ddMMyy-MMss-") + participantID + ".csv");
-        output.WriteLine("TID,PID,#,A,W,ID,T,sX,sY,sZ,tX,tY,tZ,dX,dY,dZ,dP");
+        detailOutput = new StreamWriter(Application.persistentDataPath + "/FittsVR-Detail-" + DateTime.Now.ToString("ddMMyy-MMss-") + participantID + ".csv");
+        detailOutput.WriteLine("TID,PID,#,A,W,ID,T,sX,sY,sZ,tX,tY,tZ,dX,dY,dZ");
+
+        summaryOutput = new StreamWriter(Application.persistentDataPath + "/FittsVR-Summary-" + DateTime.Now.ToString("ddMMyy-MMss-") + participantID + ".csv");
+        detailOutput.WriteLine("PID,XR,Av,A,W,ID,MT,MDx,SDx,We,IDe,TP");
     }
 
     public void EndTrials()
     {
-        Debug.Log("Closing File");
-        output.Close();
+        detailOutput.Close();
+        summaryOutput.Close();
     }
 
     public void TargetSelected(Vector3 selectionVector)
@@ -144,35 +151,7 @@ public class FittsVRController : MonoBehaviour
         {
             GetComponent<AudioSource>().Play();
 
-            if (!practiceState && targetCount > 0)
-            {
-                string outputLine = "";
-
-                outputLine += expTrailID + ",";
-                outputLine += participantID + ",";
-                outputLine += targetCount + ",";
-                outputLine += currentAmplitude + ",";
-                outputLine += currentTargetWidth + ",";
-                outputLine += Math.Log((currentAmplitude / currentTargetWidth) + 1, 2) + ",";
-                outputLine += Time.time - lastTargetTime + ",";
-                outputLine += selectionVector.x + ",";
-                outputLine += selectionVector.y + ",";
-                outputLine += selectionVector.z + ",";
-                outputLine += targets[currentTargetIndex].transform.position.x + ",";
-                outputLine += targets[currentTargetIndex].transform.position.y + ",";
-                outputLine += targets[currentTargetIndex].transform.position.z + ",";
-
-                float xDelta = Math.Abs(targets[currentTargetIndex].transform.position.x - selectionVector.x);
-                float yDelta = Math.Abs(targets[currentTargetIndex].transform.position.y - selectionVector.y);
-                float zDelta = Math.Abs(targets[currentTargetIndex].transform.position.z - selectionVector.z);
-
-                outputLine += xDelta + ",";
-                outputLine += yDelta + ",";
-                outputLine += zDelta + ",";
-                outputLine += Math.Sqrt(Math.Pow(xDelta, 2) + Math.Pow(yDelta, 2));
-
-                output.WriteLine(outputLine);
-            }
+            if (!practiceState && targetCount > 0) DetailOutput(selectionVector);
 
             lastTargetTime = Time.time;
             targetCount++;
@@ -180,8 +159,9 @@ public class FittsVRController : MonoBehaviour
             if (targetCount > currentTotalTargets)
             {
                 numberOfTrialsComplete++;
-                if (numberOfTrialsComplete < 3)
+                if (numberOfTrialsComplete < 12)
                 {
+                    SummaryOutput();
                     NextTrial();
                 } else
                 {
@@ -219,9 +199,11 @@ public class FittsVRController : MonoBehaviour
         currentTotalTargets = newCondition.numOfTargets;
         currentAmplitude = newCondition.amplitude;
         currentTargetWidth = newCondition.width;
+        dXlist.Clear();
 
         ResetTargets();
     }
+
     public void SetPractice(bool status)
     {
         practiceState = status;
@@ -240,5 +222,88 @@ public class FittsVRController : MonoBehaviour
     public bool GetTrialComplete()
     {
         return trialComplete;
+    }
+
+    private void DetailOutput(Vector3 selectionVector)
+    {
+        string outputLine = "";
+
+        outputLine += expTrailID + ",";
+        outputLine += participantID + ",";
+        outputLine += targetCount + ",";
+        outputLine += currentAmplitude + ",";
+        outputLine += currentTargetWidth + ",";
+        outputLine += Math.Log((currentAmplitude / currentTargetWidth) + 1, 2) + ",";
+        float selectionTime = Time.time - lastTargetTime;
+        tList.Add(selectionTime);
+        outputLine += selectionTime + ",";
+        outputLine += selectionVector.x + ",";
+        outputLine += selectionVector.y + ",";
+        outputLine += selectionVector.z + ",";
+        outputLine += targets[currentTargetIndex].transform.position.x + ",";
+        outputLine += targets[currentTargetIndex].transform.position.y + ",";
+        outputLine += targets[currentTargetIndex].transform.position.z + ",";
+
+        float xDelta = Math.Abs(targets[currentTargetIndex].transform.position.x - selectionVector.x);
+        dXlist.Add(xDelta);
+        float yDelta = Math.Abs(targets[currentTargetIndex].transform.position.y - selectionVector.y);
+        float zDelta = Math.Abs(targets[currentTargetIndex].transform.position.z - selectionVector.z);
+
+        outputLine += xDelta + ",";
+        outputLine += yDelta + ",";
+        outputLine += zDelta + ",";
+
+        detailOutput.WriteLine(outputLine);
+    }
+
+    private void SummaryOutput()
+    {
+        string outputLine = "";
+
+        outputLine += participantID + ",";
+        outputLine += expTrailID + ",";
+        outputLine += currentAmplitude + ",";
+        outputLine += currentTargetWidth + ",";
+
+        float ID = (float)Math.Log((currentAmplitude / currentTargetWidth) + 1, 2);
+        outputLine += ID;
+
+        float mT = MeanFromList(tList);
+        outputLine += mT + ",";
+
+        float mDx = MeanFromList(dXlist);
+        outputLine += mDx + ",";
+
+        float sDx = STDevFromList(dXlist, mDx);
+        outputLine += sDx + ",";
+
+        float We = sDx * 4.133f;
+        outputLine += We + ",";
+
+        float IDe = (float)Math.Log((currentAmplitude / We) + 1, 2);
+        outputLine += IDe + ",";
+
+        float TP = IDe / mT;
+        outputLine += TP + ",";
+
+        summaryOutput.WriteLine(outputLine);
+    }
+
+    private float MeanFromList(List<float> input) 
+    {
+        float totalValue = 0.0f;
+
+        foreach (float value in input) totalValue += value;
+
+        return totalValue / input.Count;
+    }
+
+    private float STDevFromList(List<float> input, float mean)
+    {
+        List<float> deviations = new List<float>();
+
+        foreach (float value in input) deviations.Add((float)Math.Pow(value - mean, 2));
+
+        return (float)Math.Sqrt(MeanFromList(deviations));
     }
 }
