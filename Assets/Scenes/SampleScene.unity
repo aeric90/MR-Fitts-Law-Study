@@ -1828,7 +1828,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2812512613354297474, guid: dc35c61ecac9f3e4ea7e96c2ce7f1218, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.503
+      value: -0.504
       objectReference: {fileID: 0}
     - target: {fileID: 2812512613354297474, guid: dc35c61ecac9f3e4ea7e96c2ce7f1218, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1836,7 +1836,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2812512613354297474, guid: dc35c61ecac9f3e4ea7e96c2ce7f1218, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.693
+      value: -0.498
       objectReference: {fileID: 0}
     - target: {fileID: 2812512613354297474, guid: dc35c61ecac9f3e4ea7e96c2ce7f1218, type: 3}
       propertyPath: m_LocalRotation.w
@@ -4403,6 +4403,10 @@ PrefabInstance:
     - target: {fileID: 2162069299835643697, guid: 86712b7f2c71bc345bbcf84f465f69d8, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2387959371524203302, guid: 86712b7f2c71bc345bbcf84f465f69d8, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 600.66
       objectReference: {fileID: 0}
     - target: {fileID: 3162296174139755907, guid: 86712b7f2c71bc345bbcf84f465f69d8, type: 3}
       propertyPath: m_AnchorMax.y
@@ -20045,7 +20049,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5550776017305005758}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.509, y: 0, z: -0.626}
+  m_LocalPosition: {x: -0.509, y: 0, z: -0.479}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -21664,27 +21668,27 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6993205541863642876, guid: dcf393c2be4650e4a817307c17022cdd, type: 3}
       propertyPath: trialConditions.Array.data[0].numOfTargets
-      value: 5
+      value: 11
       objectReference: {fileID: 0}
     - target: {fileID: 6993205541863642876, guid: dcf393c2be4650e4a817307c17022cdd, type: 3}
       propertyPath: trialConditions.Array.data[1].numOfTargets
-      value: 5
+      value: 11
       objectReference: {fileID: 0}
     - target: {fileID: 6993205541863642876, guid: dcf393c2be4650e4a817307c17022cdd, type: 3}
       propertyPath: trialConditions.Array.data[2].numOfTargets
-      value: 5
+      value: 11
       objectReference: {fileID: 0}
     - target: {fileID: 6993205541863642876, guid: dcf393c2be4650e4a817307c17022cdd, type: 3}
       propertyPath: trialConditions.Array.data[3].numOfTargets
-      value: 5
+      value: 11
       objectReference: {fileID: 0}
     - target: {fileID: 6993205541863642876, guid: dcf393c2be4650e4a817307c17022cdd, type: 3}
       propertyPath: trialConditions.Array.data[4].numOfTargets
-      value: 5
+      value: 11
       objectReference: {fileID: 0}
     - target: {fileID: 6993205541863642876, guid: dcf393c2be4650e4a817307c17022cdd, type: 3}
       propertyPath: trialConditions.Array.data[5].numOfTargets
-      value: 5
+      value: 11
       objectReference: {fileID: 0}
     - target: {fileID: 6993205541863642876, guid: dcf393c2be4650e4a817307c17022cdd, type: 3}
       propertyPath: practiceConditions.Array.data[0].numOfTargets

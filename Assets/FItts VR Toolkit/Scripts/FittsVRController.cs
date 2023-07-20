@@ -180,7 +180,7 @@ public class FittsVRController : MonoBehaviour
             if (targetCount > currentTotalTargets)
             {
                 numberOfTrialsComplete++;
-                if (numberOfTrialsComplete < 12)
+                if (numberOfTrialsComplete < 3)
                 {
                     NextTrial();
                 } else
