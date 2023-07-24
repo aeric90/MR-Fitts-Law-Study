@@ -4,33 +4,59 @@ using UnityEngine;
 using System.IO;
 using System;
 
+public enum FITTS_STATUS
+{
+    INACTIVE,
+    PRACTICE,
+    TRIAL,
+    POST_TRAIL,
+    END
+}
+
+[System.Serializable]
+public class FittsTrial
+{
+    public int numOfTargets = 0;
+    public FittsCondition[] conditions;
+}
+
 [System.Serializable]
 public class FittsCondition
 {
-    public int numOfTargets = 0;
     public float amplitude = 0.0f;
     public float width = 0.0f;
+}
 
+[System.Serializable]
+public class FittsSelection
+{
+    public int participantID;
+    public int conditionID;
+    public string conditionText;
+    public int targetNum;
+    public float amplitude;
+    public float width;
+    public float time;
+    public float selectionX;
+    public float selectionY;
+    public float selectionZ;
+    public float targetX;
+    public float targetY;
+    public float targetZ;
 }
 
 public class FittsVRController : MonoBehaviour
 {
     public static FittsVRController fittsVRinstance;
 
+    private FITTS_STATUS currentStatus = FITTS_STATUS.INACTIVE;
+
     public int participantID = 0;
-    public FittsCondition[] trialConditions;
-    public FittsCondition[] practiceConditions;
+    public FittsTrial practiceTrials;
+    public FittsTrial experimentTrials;
 
-    public int[,] conditionSquare = {   {0, 1, 3, 4, 5, 2, 0, 1, 3, 4, 5, 2 },
-                                        {1, 4, 0, 2, 3, 5, 1, 4, 0, 2, 3, 5 },
-                                        {4, 2, 1, 5, 0, 3, 4, 2, 1, 5, 0, 3 },
-                                        {2, 5, 4, 3, 1, 0, 2, 5, 4, 3, 1, 0 },
-                                        {5, 3, 2, 0, 4, 1, 5, 3, 2, 0, 4, 1 },
-                                        {3, 0, 5, 1, 2, 4, 3, 0, 5, 1, 2, 4 }};
-
-    public int inputTotalTargets = 0;
-    public float inputAmplitude = 0.0f;
-    public float inputTargetWidth = 1.0f;
+    public int conditionRepetitions = 1;
+    private List<int> conditionSquareNew = new List<int>();
 
     public GameObject targetPrefab;
     public Material targetBasicMaterial;
@@ -40,12 +66,13 @@ public class FittsVRController : MonoBehaviour
     public GameObject targetContainer;
 
     private bool fittsRunning = false;
-    private bool practiceState = false;
+
     private bool practiceComplete = false;
     private bool trialComplete = false;
-    private int expTrailID = 0;
+    private int conditionID = -1;
+    private string conditionText = "";
     private int currentTrial = -1;
-    private int numberOfTrialsComplete = 0;
+    private int numberOfTrialsComplete = -1;
     private int currentTotalTargets = 0;
     private float currentAmplitude = 0.0f;
     private float currentTargetWidth = 1.0f;
@@ -59,6 +86,8 @@ public class FittsVRController : MonoBehaviour
 
     private StreamWriter detailOutput;
     private StreamWriter summaryOutput;
+
+    private List<FittsSelection> selections = new List<FittsSelection>();
 
     private List<float> tList = new List<float>();
     private List<float> dXlist = new List<float>();
@@ -75,16 +104,36 @@ public class FittsVRController : MonoBehaviour
 
     }
 
-    public void StartFitts(int trialID)
+    public void SetPID(int PID)
     {
-        expTrailID = trialID;
+        participantID = PID;
+        conditionSquareNew = LatinSquareGenerator(6, PID);
+    }
+
+    public void SetConditionID(int conditionID)
+    {
+        this.conditionID = conditionID;
+        this.conditionText = "";
+    }
+
+    public void SetConditionID(int conditionID, string conditionText)
+    {
+        this.conditionID = conditionID;
+        this.conditionText = conditionText;
+    }
+
+    public void StartFitts()
+    {
+        Debug.Log("Fitts VR - Start");
         fittsRunning = true;
-        numberOfTrialsComplete = 0;
+        numberOfTrialsComplete = -1;
+        if(currentStatus == FITTS_STATUS.POST_TRAIL) currentStatus = FITTS_STATUS.TRIAL;
         NextTrial();
     }
 
     private void ResetTargets()
     {
+        Debug.Log("Fitts VR - Reseting Targets");
         DeleteTargets();
 
         for(float i = 0.0f; i < currentTotalTargets; i++)
@@ -96,12 +145,14 @@ public class FittsVRController : MonoBehaviour
             targets.Add(newTarget);
         }
         targetCount = 0;
+        currentTargetIndex = 0;
         SetNextActiveTarget();
     }
 
     private void DeleteTargets()
     {
-        foreach(GameObject target in targets) DestroyImmediate(target);
+        Debug.Log("Fitts VR - Deleting Targets");
+        foreach (GameObject target in targets) DestroyImmediate(target);
         targets.Clear();
     }
 
@@ -130,17 +181,39 @@ public class FittsVRController : MonoBehaviour
         targets[currentTargetIndex].gameObject.GetComponent<Renderer>().material = targetActiveMaterial;
     }
 
-    public void StartTrials()
+    public void StartPractice()
     {
-        detailOutput = new StreamWriter(Application.persistentDataPath + "/FittsVR-Detail-" + DateTime.Now.ToString("ddMMyy-MMss-") + participantID + ".csv");
-        detailOutput.WriteLine("TID,PID,#,A,W,ID,T,sX,sY,sZ,tX,tY,tZ,dX,dY,dZ");
-
-        summaryOutput = new StreamWriter(Application.persistentDataPath + "/FittsVR-Summary-" + DateTime.Now.ToString("ddMMyy-MMss-") + participantID + ".csv");
-        detailOutput.WriteLine("PID,XR,Av,A,W,ID,MT,MDx,SDx,We,IDe,TP");
+        Debug.Log("Fitts VR - Start Practice");
+        currentTotalTargets = practiceTrials.numOfTargets;
+        currentStatus = FITTS_STATUS.PRACTICE;
     }
 
-    public void EndTrials()
+    public void StartTrials()
     {
+        Debug.Log("Fitts VR - Start Trial");
+        currentTotalTargets = experimentTrials.numOfTargets;
+        currentStatus = FITTS_STATUS.TRIAL;
+
+        detailOutput = new StreamWriter(Application.persistentDataPath + "/FittsVR-Detail-" + DateTime.Now.ToString("ddMMyy-MMss-") + participantID + ".csv");
+        detailOutput.WriteLine("PID,TID,#,A,W,ID,T,sX,sY,sZ,tX,tY,tZ,dX,dY,dZ");
+
+        summaryOutput = new StreamWriter(Application.persistentDataPath + "/FittsVR-Summary-" + DateTime.Now.ToString("ddMMyy-MMss-") + participantID + ".csv");
+        summaryOutput.WriteLine("Participant ID,Trial ID,Trial Text,A,W,ID,MT,MDx,SDx,We,IDe,TP");
+    }
+
+    public void EndTrial()
+    {
+        Debug.Log("Fitts VR - End Trial");
+        trialComplete = true;
+        DeleteTargets();
+        currentStatus = FITTS_STATUS.POST_TRAIL;
+    }
+
+    public void EndFitts()
+    {
+        Debug.Log("Fitts VR - End Fitts");
+        fittsRunning = false;
+        currentStatus = FITTS_STATUS.END;
         detailOutput.Close();
         summaryOutput.Close();
     }
@@ -151,24 +224,23 @@ public class FittsVRController : MonoBehaviour
         {
             GetComponent<AudioSource>().Play();
 
-            if (!practiceState && targetCount > 0) DetailOutput(selectionVector);
+            switch(currentStatus)
+            {
+                case FITTS_STATUS.TRIAL:
+                    if (targetCount > 0)
+                    {
+                        AddSelection(selectionVector);
+                        DetailOutput(selectionVector);
+                    }
+                    break;
+            }
 
             lastTargetTime = Time.time;
             targetCount++;
 
             if (targetCount > currentTotalTargets)
             {
-                numberOfTrialsComplete++;
-                if (numberOfTrialsComplete < 12)
-                {
-                    SummaryOutput();
-                    NextTrial();
-                } else
-                {
-                    fittsRunning = false;
-                    trialComplete = true;
-                    DeleteTargets();
-                }
+                NextTrial();
             }
             else
             {
@@ -181,38 +253,47 @@ public class FittsVRController : MonoBehaviour
     {
         FittsCondition newCondition = new FittsCondition();
 
-        if(practiceState) {
-            currentTrial++;
-            if (currentTrial >= practiceConditions.Length)
-            {
-                practiceComplete = true;
-                currentTrial = 0;
-            }
-            newCondition = practiceConditions[currentTrial];
-        } else {
-            currentTrial = conditionSquare[participantID % 6, numberOfTrialsComplete];
-            newCondition = trialConditions[currentTrial];
+        switch (currentStatus)
+        {
+            case FITTS_STATUS.PRACTICE:
+                Debug.Log("Fitts VR - Next Practice");
+                currentTrial++;
+                if (currentTrial >= practiceTrials.conditions.Length)
+                {
+                    practiceComplete = true;
+                    currentTrial = 0;
+                }
+                newCondition = practiceTrials.conditions[currentTrial];
+                trialComplete = false;
+                currentAmplitude = newCondition.amplitude;
+                currentTargetWidth = newCondition.width;
+                dXlist.Clear();
+                tList.Clear();
+                ResetTargets();
+                break;
+            case FITTS_STATUS.TRIAL:
+                numberOfTrialsComplete++;
+                if (numberOfTrialsComplete >= conditionSquareNew.Count * conditionRepetitions)
+                {
+                    SummaryOutput();
+                    EndTrial(); 
+                }
+                else
+                {
+                    Debug.Log("Fitts VR - Next Trial - " + numberOfTrialsComplete);
+                    currentTrial = conditionSquareNew[numberOfTrialsComplete % conditionSquareNew.Count];
+                    newCondition = experimentTrials.conditions[currentTrial];
+                    trialComplete = false;
+                    currentAmplitude = newCondition.amplitude;
+                    currentTargetWidth = newCondition.width;
+                    //dXlist.Clear();
+                    //tList.Clear();
+                    ResetTargets();
+                }
+                break;
         }
-
-        targetCount = 0;
-        trialComplete = false;
-        currentTotalTargets = newCondition.numOfTargets;
-        currentAmplitude = newCondition.amplitude;
-        currentTargetWidth = newCondition.width;
-        dXlist.Clear();
-
-        ResetTargets();
     }
 
-    public void SetPractice(bool status)
-    {
-        practiceState = status;
-    }
-
-    public void SetPID(int PID)
-    {
-        participantID = PID;
-    }
 
     public bool GetPracticeComplete()
     {
@@ -224,18 +305,39 @@ public class FittsVRController : MonoBehaviour
         return trialComplete;
     }
 
+    private void AddSelection(Vector3 selectionVector)
+    {
+        FittsSelection newSelection = new FittsSelection();
+
+        newSelection.participantID = participantID;
+        newSelection.conditionID = conditionID;
+        newSelection.conditionText = conditionText;
+        newSelection.targetNum = targetCount;
+        newSelection.amplitude = currentAmplitude;
+        newSelection.width = currentTargetWidth;
+        newSelection.time = Time.time - lastTargetTime;
+        newSelection.selectionX = selectionVector.x;
+        newSelection.selectionY = selectionVector.y;
+        newSelection.selectionZ = selectionVector.z;
+        newSelection.targetX = targets[currentTargetIndex].transform.position.x;
+        newSelection.targetY = targets[currentTargetIndex].transform.position.y;
+        newSelection.targetZ = targets[currentTargetIndex].transform.position.z;
+        
+        selections.Add(newSelection);
+    }
+
     private void DetailOutput(Vector3 selectionVector)
     {
         string outputLine = "";
 
-        outputLine += expTrailID + ",";
         outputLine += participantID + ",";
+        outputLine += conditionText + ",";
         outputLine += targetCount + ",";
         outputLine += currentAmplitude + ",";
         outputLine += currentTargetWidth + ",";
         outputLine += Math.Log((currentAmplitude / currentTargetWidth) + 1, 2) + ",";
         float selectionTime = Time.time - lastTargetTime;
-        tList.Add(selectionTime);
+        //tList.Add(selectionTime);
         outputLine += selectionTime + ",";
         outputLine += selectionVector.x + ",";
         outputLine += selectionVector.y + ",";
@@ -245,7 +347,7 @@ public class FittsVRController : MonoBehaviour
         outputLine += targets[currentTargetIndex].transform.position.z + ",";
 
         float xDelta = Math.Abs(targets[currentTargetIndex].transform.position.x - selectionVector.x);
-        dXlist.Add(xDelta);
+        //dXlist.Add(xDelta);
         float yDelta = Math.Abs(targets[currentTargetIndex].transform.position.y - selectionVector.y);
         float zDelta = Math.Abs(targets[currentTargetIndex].transform.position.z - selectionVector.z);
 
@@ -258,35 +360,53 @@ public class FittsVRController : MonoBehaviour
 
     private void SummaryOutput()
     {
-        string outputLine = "";
+        foreach (FittsCondition condition in experimentTrials.conditions)
+        {
+            string outputLine = "";
 
-        outputLine += participantID + ",";
-        outputLine += expTrailID + ",";
-        outputLine += currentAmplitude + ",";
-        outputLine += currentTargetWidth + ",";
+            outputLine += participantID + ",";
+            outputLine += conditionID + ",";
+            outputLine += conditionText + ",";
+            outputLine += condition.amplitude + ",";
+            outputLine += condition.width + ",";
+            float ID = (float)Math.Log((condition.amplitude / condition.width) + 1, 2);
+            outputLine += ID + ",";
 
-        float ID = (float)Math.Log((currentAmplitude / currentTargetWidth) + 1, 2);
-        outputLine += ID;
+            foreach (FittsSelection selection in selections)
+            {
+                if(selection.amplitude == condition.amplitude && selection.width == condition.width)
+                {
+                    tList.Add(selection.time);
+                    float xDelta = Math.Abs(selection.targetX - selection.selectionX);
+                    dXlist.Add(xDelta);
+                }
+            }
 
-        float mT = MeanFromList(tList);
-        outputLine += mT + ",";
+            float mT = MeanFromList(tList);
+            outputLine += mT + ",";
 
-        float mDx = MeanFromList(dXlist);
-        outputLine += mDx + ",";
+            float mDx = MeanFromList(dXlist);
+            outputLine += mDx + ",";
 
-        float sDx = STDevFromList(dXlist, mDx);
-        outputLine += sDx + ",";
+            float sDx = STDevFromList(dXlist, mDx);
+            outputLine += sDx + ",";
 
-        float We = sDx * 4.133f;
-        outputLine += We + ",";
+            float We = sDx * 4.133f;
+            outputLine += We + ",";
 
-        float IDe = (float)Math.Log((currentAmplitude / We) + 1, 2);
-        outputLine += IDe + ",";
+            float IDe = (float)Math.Log((condition.amplitude / We) + 1, 2);
+            outputLine += IDe + ",";
 
-        float TP = IDe / mT;
-        outputLine += TP + ",";
+            float TP = IDe / mT;
+            outputLine += TP;
 
-        summaryOutput.WriteLine(outputLine);
+            summaryOutput.WriteLine(outputLine);
+
+            tList.Clear();
+            dXlist.Clear();
+        }
+
+        selections.Clear();
     }
 
     private float MeanFromList(List<float> input) 
@@ -305,5 +425,37 @@ public class FittsVRController : MonoBehaviour
         foreach (float value in input) deviations.Add((float)Math.Pow(value - mean, 2));
 
         return (float)Math.Sqrt(MeanFromList(deviations));
+    }
+
+    private List<int> LatinSquareGenerator(int conditions, int participantID)
+    {
+        List<int> result = new List<int>();
+
+        int j = 0;
+        int h = 0;
+
+        for(int i = 0; i < conditions; i++)
+        {
+            int val = 0;
+
+            if(i < 2 || i % 2 != 0) {
+                val = j++;
+            } 
+            else
+            {
+                val = conditions - h - 1;
+                h++;
+            }
+
+            int idx = (val + participantID) % conditions;
+            result.Add(idx);
+        }
+
+        if(conditions % 2 != 0 && participantID % 2 != 0)
+        {
+            result.Reverse();
+        }
+
+        return result;
     }
 }
